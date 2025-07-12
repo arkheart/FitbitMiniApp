@@ -55,5 +55,5 @@ Note:
 Gemini CLI instructions
 https://github.com/google-gemini/gemini-cli
 
-Billing Dashboard
-https://aistudio.google.com/usage?project=gen-lang-client-0890399356
+Billing Dashboard (for my own use)
+https://aistudio.google.com/usage
