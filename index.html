@@ -21,7 +21,23 @@
     </div>
 
     <script>
-        const clientId = 'YOUR_CLIENT_ID'; // IMPORTANT: Replace with your Fitbit Client ID
+                            let clientId;
+
+                            // Function to fetch config from the server
+                            async function fetchConfig() {
+                                try {
+                                    const response = await fetch('/config');
+                                    const config = await response.json();
+                                    clientId = config.clientId;
+                                    // Now that we have the client ID, we can initialize the auth functionality
+                                    loginButton.disabled = false; // Enable login button
+                                } catch (error) {
+                                    console.error('Error fetching configuration:', error);
+                                    // Handle the error, maybe show a message to the user
+                                    alert('Could not load application configuration. Please try again later.');
+                                }
+                            }
+
         const redirectUri = window.location.href.split('#')[0];
         const scope = 'activity heartrate profile';
 
@@ -100,6 +116,8 @@
         logoutButton.addEventListener('click', logout);
 
         // Initial setup
+                            loginButton.disabled = true; // Disable login button until config is loaded
+                            fetchConfig();
         handleAuth();
     </script>
 </body>

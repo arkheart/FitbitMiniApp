@@ -19,8 +19,18 @@ RUN npm install -g @google/gemini-cli http-server
 # Set working directory inside the container
 WORKDIR /app
 
-# Expose the dev server port (you can change if needed)
+# Copy package.json and package-lock.json (if available)
+COPY package.json ./
+
+# Install project dependencies
+RUN npm install && ls -l node_modules && ls -l node_modules/express
+
+# Copy the rest of the application files
+COPY . .
+
+# Expose the application port
 EXPOSE 3000
 
-# Default command to start http-server on port 3000 serving current folder
-CMD ["http-server", "-p", "3000"]
+# Command to start the Node.js server
+CMD ["npm", "start"]
+
