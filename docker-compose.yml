@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  gemini-webapp:
+    build: .
+    container_name: gemini_dev_env
+    ports:
+      - "3000:3000"    # Change this if your app uses another port
+    volumes:
+      - .:/app         # Mount current directory for live editing
+    stdin_open: true
+    tty: true

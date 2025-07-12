@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitbit Project</title>
+</head>
+<body>
+    <h1>Welcome to our Fitbit Project!</h1>
+    <p>This project is dedicated to exploring the possibilities of the Fitbit API.</p>
+    <p>Our main goal is to leverage the Fitbit API to create custom views and visualizations of your fitness data.</p>
+
+    <div id="auth-section">
+        <button id="login-button">Login with Fitbit</button>
+    </div>
+
+    <div id="data-section" style="display: none;">
+        <h2>Your Fitbit Data</h2>
+        <pre id="api-data"></pre>
+        <button id="logout-button">Logout</button>
+    </div>
+
+    <script>
+        const clientId = 'YOUR_CLIENT_ID'; // IMPORTANT: Replace with your Fitbit Client ID
+        const redirectUri = window.location.href.split('#')[0];
+        const scope = 'activity heartrate profile';
+
+        const loginButton = document.getElementById('login-button');
+        const logoutButton = document.getElementById('logout-button');
+        const authSection = document.getElementById('auth-section');
+        const dataSection = document.getElementById('data-section');
+        const apiData = document.getElementById('api-data');
+
+        function handleAuth() {
+            if (window.location.hash) {
+                const fragment = new URLSearchParams(window.location.hash.slice(1));
+                if (fragment.has('access_token')) {
+                    const accessToken = fragment.get('access_token');
+                    const userId = fragment.get('user_id');
+                    localStorage.setItem('fitbitAccessToken', accessToken);
+                    localStorage.setItem('fitbitUserId', userId);
+                    window.location.hash = ''; // Clear the hash from the URL
+                    showDataView();
+                    fetchProfileData(accessToken);
+                }
+            }
+
+            const storedToken = localStorage.getItem('fitbitAccessToken');
+            if (storedToken) {
+                showDataView();
+                fetchProfileData(storedToken);
+            }
+        }
+
+        function login() {
+            const authUrl = `https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&expires_in=604800`;
+            window.location.href = authUrl;
+        }
+
+        function logout() {
+            localStorage.removeItem('fitbitAccessToken');
+            localStorage.removeItem('fitbitUserId');
+            showAuthView();
+        }
+
+        function showAuthView() {
+            authSection.style.display = 'block';
+            dataSection.style.display = 'none';
+        }
+
+        function showDataView() {
+            authSection.style.display = 'none';
+            dataSection.style.display = 'block';
+        }
+
+        async function fetchProfileData(token) {
+            const userId = localStorage.getItem('fitbitUserId');
+            try {
+                const response = await fetch(`https://api.fitbit.com/1/user/${userId}/profile.json`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 401) {
+                    // Token expired or invalid, force re-login
+                    logout();
+                    return;
+                }
+
+                const data = await response.json();
+                apiData.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                console.error('Error fetching Fitbit data:', error);
+                apiData.textContent = 'Error fetching data.';
+            }
+        }
+
+        loginButton.addEventListener('click', login);
+        logoutButton.addEventListener('click', logout);
+
+        // Initial setup
+        handleAuth();
+    </script>
+</body>
+</html>
