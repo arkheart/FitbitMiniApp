@@ -24,13 +24,6 @@ http-server -p 3000
 gemini --help
 # Make sure to set your API key or configuration if needed
 
-# Initialize and push a Git repo to GitHub
-git init
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git add .
-git commit -m "Initial commit"
-git push -u origin main
-
 # Common Docker commands
 docker-compose up            # Start container
 docker-compose down          # Stop container
