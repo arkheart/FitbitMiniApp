@@ -16,6 +16,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <!-- The body section contains the visible content of the page -->
 <body>
@@ -64,7 +65,9 @@
             <label for="end-time-intraday">End Time:</label>
             <input type="text" id="end-time-intraday">
             <button id="fetch-intraday-button">Fetch Intraday Data</button>
+            <button id="toggle-chart-button">Toggle Chart</button>
         </div>
+        <canvas id="intraday-chart" style="display: none;"></canvas>
         <div id="intraday-data"></div>
     </div>
 
@@ -72,6 +75,7 @@
     <script>
         // This function ensures that the script runs after the DOM is fully loaded
         $(document).ready(function() {
+            let intradayChart;
             // Initialize date and time pickers
             $("#start-date, #end-date, #intraday-date").datepicker({
                 dateFormat: 'yy-mm-dd'
@@ -135,6 +139,8 @@
             const $endTimeIntraday = $('#end-time-intraday');
             const $fetchIntradayButton = $('#fetch-intraday-button');
             const $intradayData = $('#intraday-data');
+            const $toggleChartButton = $('#toggle-chart-button');
+            const $intradayChart = $('#intraday-chart');
 
             // This function handles the authentication process
             function handleAuth() {
@@ -270,8 +276,37 @@
                         'Authorization': `Bearer ${token}`
                     },
                     success: function(data) {
+                        const dataset = data['activities-steps-intraday'].dataset;
+                        const labels = dataset.map(point => point.time);
+                        const values = dataset.map(point => point.value);
+
+                        if (intradayChart) {
+                            intradayChart.destroy();
+                        }
+
+                        intradayChart = new Chart($intradayChart, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Steps',
+                                    data: values,
+                                    backgroundColor: '#A9BDB4',
+                                    borderColor: '#5A6E66',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+
                         let intradayHtml = '<ul>';
-                        data['activities-steps-intraday'].dataset.forEach(function(point) {
+                        dataset.forEach(function(point) {
                             intradayHtml += `<li>${point.time}: ${point.value} steps</li>`;
                         });
                         intradayHtml += '</ul>';
@@ -320,6 +355,11 @@
                 if (token && date && startTime && endTime) {
                     fetchIntradayData(token, date, startTime, endTime);
                 }
+            });
+
+            $toggleChartButton.on('click', function() {
+                $intradayChart.toggle();
+                $intradayData.toggle();
             });
 
             // We disable the login button until the configuration is loaded
