@@ -1,124 +1,237 @@
 <!DOCTYPE html>
+<!-- This is the root element of the HTML page -->
 <html lang="en">
+<!-- The head section contains metadata about the page -->
 <head>
+    <!-- This tag specifies the character encoding for the document -->
     <meta charset="UTF-8">
+    <!-- This tag makes the page responsive to different screen sizes -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- This is the title of the page that appears in the browser tab -->
     <title>Fitbit Project</title>
+    <!-- This line includes the jQuery library, which simplifies DOM manipulation and AJAX calls -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
+<!-- The body section contains the visible content of the page -->
 <body>
+    <!-- This is the main heading of the page -->
     <h1>Welcome to our Fitbit Project!</h1>
+    <!-- These paragraphs provide a brief introduction to the project -->
     <p>This project is dedicated to exploring the possibilities of the Fitbit API.</p>
     <p>Our main goal is to leverage the Fitbit API to create custom views and visualizations of your fitness data.</p>
 
+    <!-- This section is for the authentication functionality -->
     <div id="auth-section">
+        <!-- This button triggers the Fitbit login process -->
         <button id="login-button">Login with Fitbit</button>
     </div>
 
+    <!-- This section is for displaying the user's Fitbit data -->
     <div id="data-section" style="display: none;">
         <h2>Your Fitbit Data</h2>
+        <!-- This preformatted text block will show the raw data from the Fitbit API -->
         <pre id="api-data"></pre>
+        <!-- This button allows the user to log out -->
         <button id="logout-button">Logout</button>
     </div>
 
+    <!-- This section is for displaying the user's steps data -->
+    <div id="steps-section" style="display: none;">
+        <h2>Your Steps for the Last 10 Days</h2>
+        <button id="fetch-steps-button">Fetch Steps Data</button>
+        <div id="steps-data"></div>
+    </div>
+
+    <!-- This script tag contains the JavaScript code for the page -->
     <script>
-                            let clientId;
+        // This function ensures that the script runs after the DOM is fully loaded
+        $(document).ready(function() {
+            // This variable will store the Fitbit client ID
+            let clientId;
 
-                            // Function to fetch config from the server
-                            async function fetchConfig() {
-                                try {
-                                    const response = await fetch('/config');
-                                    const config = await response.json();
-                                    clientId = config.clientId;
-                                    // Now that we have the client ID, we can initialize the auth functionality
-                                    loginButton.disabled = false; // Enable login button
-                                } catch (error) {
-                                    console.error('Error fetching configuration:', error);
-                                    // Handle the error, maybe show a message to the user
-                                    alert('Could not load application configuration. Please try again later.');
-                                }
-                            }
-
-        const redirectUri = window.location.href.split('#')[0];
-        const scope = 'activity heartrate profile';
-
-        const loginButton = document.getElementById('login-button');
-        const logoutButton = document.getElementById('logout-button');
-        const authSection = document.getElementById('auth-section');
-        const dataSection = document.getElementById('data-section');
-        const apiData = document.getElementById('api-data');
-
-        function handleAuth() {
-            if (window.location.hash) {
-                const fragment = new URLSearchParams(window.location.hash.slice(1));
-                if (fragment.has('access_token')) {
-                    const accessToken = fragment.get('access_token');
-                    const userId = fragment.get('user_id');
-                    localStorage.setItem('fitbitAccessToken', accessToken);
-                    localStorage.setItem('fitbitUserId', userId);
-                    window.location.hash = ''; // Clear the hash from the URL
-                    showDataView();
-                    fetchProfileData(accessToken);
+            // This function fetches the client ID from the server
+            async function fetchConfig() {
+                try {
+                    // We make a request to our server's /config endpoint
+                    const response = await fetch('/config');
+                    // We parse the JSON response to get the configuration
+                    const config = await response.json();
+                    // We store the client ID in our variable
+                    clientId = config.clientId;
+                    // Now that we have the client ID, we can enable the login button
+                    $('#login-button').prop('disabled', false);
+                } catch (error) {
+                    // If there's an error, we log it to the console
+                    console.error('Error fetching configuration:', error);
+                    // We also show an alert to the user
+                    alert('Could not load application configuration. Please try again later.');
                 }
             }
 
-            const storedToken = localStorage.getItem('fitbitAccessToken');
-            if (storedToken) {
-                showDataView();
-                fetchProfileData(storedToken);
+            // This is the URI where Fitbit will redirect the user after authentication
+            const redirectUri = 'http://localhost:3000';
+            // This is the scope of the data we are requesting from the user
+            const scope = 'activity heartrate profile';
+
+            // We get references to the DOM elements we will be working with
+            const $loginButton = $('#login-button');
+            const $logoutButton = $('#logout-button');
+            const $authSection = $('#auth-section');
+            const $dataSection = $('#data-section');
+            const $apiData = $('#api-data');
+            const $stepsSection = $('#steps-section');
+            const $fetchStepsButton = $('#fetch-steps-button');
+            const $stepsData = $('#steps-data');
+
+            // This function handles the authentication process
+            function handleAuth() {
+                // We check if there is a hash in the URL, which indicates a redirect from Fitbit
+                if (window.location.hash) {
+                    // We parse the hash to get the access token
+                    const fragment = new URLSearchParams(window.location.hash.slice(1));
+                    if (fragment.has('access_token')) {
+                        // We get the access token and user ID from the fragment
+                        const accessToken = fragment.get('access_token');
+                        const userId = fragment.get('user_id');
+                        // We store the token and user ID in local storage for later use
+                        localStorage.setItem('fitbitAccessToken', accessToken);
+                        localStorage.setItem('fitbitUserId', userId);
+                        // We clear the hash from the URL
+                        window.location.hash = '';
+                        // We show the data view and fetch the user's profile data
+                        showDataView();
+                        fetchProfileData(accessToken);
+                        fetchStepsData(accessToken);
+                    }
+                }
+
+                // We check if there is a stored token in local storage
+                const storedToken = localStorage.getItem('fitbitAccessToken');
+                if (storedToken) {
+                    // If there is a token, we show the data view and fetch the user's profile data
+                    showDataView();
+                    fetchProfileData(storedToken);
+                }
             }
-        }
 
-        function login() {
-            const authUrl = `https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&expires_in=604800`;
-            window.location.href = authUrl;
-        }
+            // This function redirects the user to the Fitbit authorization page
+            function login() {
+                // We construct the authorization URL with our client ID, redirect URI, and scope
+                const authUrl = `https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&expires_in=604800`;
+                // We redirect the user to the authorization URL
+                window.location.href = authUrl;
+            }
 
-        function logout() {
-            localStorage.removeItem('fitbitAccessToken');
-            localStorage.removeItem('fitbitUserId');
-            showAuthView();
-        }
+            // This function logs the user out by removing the token and user ID from local storage
+            function logout() {
+                localStorage.removeItem('fitbitAccessToken');
+                localStorage.removeItem('fitbitUserId');
+                // We show the authentication view
+                showAuthView();
+            }
 
-        function showAuthView() {
-            authSection.style.display = 'block';
-            dataSection.style.display = 'none';
-        }
+            // This function shows the authentication view and hides the data view
+            function showAuthView() {
+                $authSection.show();
+                $dataSection.hide();
+                $stepsSection.hide();
+            }
 
-        function showDataView() {
-            authSection.style.display = 'none';
-            dataSection.style.display = 'block';
-        }
+            // This function shows the data view and hides the authentication view
+            function showDataView() {
+                $authSection.hide();
+                $dataSection.show();
+                $stepsSection.show();
+            }
 
-        async function fetchProfileData(token) {
-            const userId = localStorage.getItem('fitbitUserId');
-            try {
-                const response = await fetch(`https://api.fitbit.com/1/user/${userId}/profile.json`, {
+            // This function fetches the user's profile data from the Fitbit API
+            function fetchProfileData(token) {
+                // We get the user ID from local storage
+                const userId = localStorage.getItem('fitbitUserId');
+                // We make an AJAX call to the Fitbit API
+                $.ajax({
+                    url: `https://api.fitbit.com/1/user/${userId}/profile.json`,
+                    // We include the access token in the authorization header
                     headers: {
                         'Authorization': `Bearer ${token}`
+                    },
+                    // If the call is successful, we display the data in the preformatted text block
+                    success: function(data) {
+                        $apiData.text(JSON.stringify(data, null, 2));
+                    },
+                    // If there's an error, we handle it
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        // If the error is a 401 (Unauthorized), it means the token is expired or invalid
+                        if (jqXHR.status === 401) {
+                            // We log the user out to force a re-login
+                            logout();
+                            return;
+                        }
+                        // We log the error to the console and display an error message to the user
+                        console.error('Error fetching Fitbit data:', textStatus, errorThrown);
+                        $apiData.text('Error fetching data.');
                     }
                 });
-
-                if (response.status === 401) {
-                    // Token expired or invalid, force re-login
-                    logout();
-                    return;
-                }
-
-                const data = await response.json();
-                apiData.textContent = JSON.stringify(data, null, 2);
-            } catch (error) {
-                console.error('Error fetching Fitbit data:', error);
-                apiData.textContent = 'Error fetching data.';
             }
-        }
 
-        loginButton.addEventListener('click', login);
-        logoutButton.addEventListener('click', logout);
+            // This function fetches the user's steps data from the Fitbit API
+            function fetchStepsData(token) {
+                const userId = localStorage.getItem('fitbitUserId');
+                const today = new Date();
+                const tenDaysAgo = new Date();
+                tenDaysAgo.setDate(today.getDate() - 9); // 9 days ago to get a total of 10 days
 
-        // Initial setup
-                            loginButton.disabled = true; // Disable login button until config is loaded
-                            fetchConfig();
-        handleAuth();
+                const formatDate = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                const endDateString = formatDate(today);
+                const startDateString = formatDate(tenDaysAgo);
+
+                $.ajax({
+                    url: `https://api.fitbit.com/1/user/${userId}/activities/steps/date/${startDateString}/${endDateString}.json`,
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    success: function(data) {
+                        let stepsHtml = '<ul>';
+                        data['activities-steps'].forEach(function(day) {
+                            stepsHtml += `<li>${day.dateTime}: ${day.value} steps</li>`;
+                        });
+                        stepsHtml += '</ul>';
+                        $stepsData.html(stepsHtml);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        if (jqXHR.status === 401) {
+                            logout();
+                            return;
+                        }
+                        console.error('Error fetching Fitbit steps data:', textStatus, errorThrown);
+                        $stepsData.text('Error fetching steps data.');
+                    }
+                });
+            }
+
+            // We attach the login and logout functions to the click events of the respective buttons
+            $loginButton.on('click', login);
+            $logoutButton.on('click', logout);
+            $fetchStepsButton.on('click', function() {
+                const token = localStorage.getItem('fitbitAccessToken');
+                if (token) {
+                    fetchStepsData(token);
+                }
+            });
+
+            // We disable the login button until the configuration is loaded
+            $('#login-button').prop('disabled', true);
+            // We fetch the configuration from the server
+            fetchConfig();
+            // We handle the authentication process
+            handleAuth();
+        });
     </script>
 </body>
 </html>
