@@ -1,0 +1,85 @@
+/* Earthy Dark Mode Theme */
+
+body {
+    background-color: #2E2A26; /* Dark, soil-like brown */
+    color: #D4C5A9; /* Sandy, light text color */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+h1, h2 {
+    color: #A9BDB4; /* Muted, earthy green */
+    border-bottom: 2px solid #4A443E; /* Darker accent for separation */
+    padding-bottom: 10px;
+}
+
+p {
+    line-height: 1.6;
+}
+
+/* --- Sections --- */
+#auth-section, #data-section, #steps-section, #intraday-section {
+    background-color: #3A3531; /* Slightly lighter brown for sections */
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Buttons --- */
+button {
+    background-color: #5A6E66; /* Earthy green for buttons */
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #6B817A; /* Lighter green on hover */
+}
+
+button:disabled {
+    background-color: #4A443E;
+    cursor: not-allowed;
+}
+
+/* --- Forms & Inputs --- */
+label {
+    margin-right: 10px;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="time"] {
+    background-color: #4A443E; /* Dark input background */
+    color: #D4C5A9;
+    border: 1px solid #5A6E66;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+/* --- Specific Elements --- */
+#api-data {
+    background-color: #2E2A26;
+    padding: 15px;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    background-color: #4A443E;
+    margin-bottom: 5px;
+    padding: 10px;
+    border-radius: 4px;
+}
