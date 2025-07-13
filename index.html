@@ -10,7 +10,11 @@
     <!-- This is the title of the page that appears in the browser tab -->
     <title>Fitbit Project</title>
     <!-- This line includes the jQuery library, which simplifies DOM manipulation and AJAX calls -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.js"></script>
 </head>
 <!-- The body section contains the visible content of the page -->
 <body>
@@ -37,15 +41,55 @@
 
     <!-- This section is for displaying the user's steps data -->
     <div id="steps-section" style="display: none;">
-        <h2>Your Steps for the Last 10 Days</h2>
-        <button id="fetch-steps-button">Fetch Steps Data</button>
+        <h2>Your Steps</h2>
+        <div>
+            <label for="start-date">Start Date:</label>
+            <input type="text" id="start-date">
+            <label for="end-date">End Date:</label>
+            <input type="text" id="end-date">
+            <button id="fetch-steps-button">Fetch Steps</button>
+        </div>
         <div id="steps-data"></div>
+    </div>
+
+    <!-- This section is for displaying intraday step data -->
+    <div id="intraday-section" style="display: none;">
+        <h2>Intraday Step Details</h2>
+        <div>
+            <label for="intraday-date">Date:</label>
+            <input type="text" id="intraday-date">
+            <label for="start-time-intraday">Start Time:</label>
+            <input type="text" id="start-time-intraday">
+            <label for="end-time-intraday">End Time:</label>
+            <input type="text" id="end-time-intraday">
+            <button id="fetch-intraday-button">Fetch Intraday Data</button>
+        </div>
+        <div id="intraday-data"></div>
     </div>
 
     <!-- This script tag contains the JavaScript code for the page -->
     <script>
         // This function ensures that the script runs after the DOM is fully loaded
         $(document).ready(function() {
+            // Initialize date and time pickers
+            $("#start-date, #end-date, #intraday-date").datepicker({
+                dateFormat: 'yy-mm-dd'
+            });
+            $('#start-time-intraday, #end-time-intraday').timepicker({
+                timeFormat: 'HH:mm'
+            });
+
+            // Set default values for intraday pickers
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayString = `${year}-${month}-${day}`;
+
+            $('#intraday-date').val(todayString);
+            $('#start-time-intraday').val('00:00');
+            $('#end-time-intraday').val('23:59');
+
             // This variable will store the Fitbit client ID
             let clientId;
 
@@ -80,8 +124,16 @@
             const $dataSection = $('#data-section');
             const $apiData = $('#api-data');
             const $stepsSection = $('#steps-section');
+            const $startDate = $('#start-date');
+            const $endDate = $('#end-date');
             const $fetchStepsButton = $('#fetch-steps-button');
             const $stepsData = $('#steps-data');
+            const $intradaySection = $('#intraday-section');
+            const $intradayDate = $('#intraday-date');
+            const $startTimeIntraday = $('#start-time-intraday');
+            const $endTimeIntraday = $('#end-time-intraday');
+            const $fetchIntradayButton = $('#fetch-intraday-button');
+            const $intradayData = $('#intraday-data');
 
             // This function handles the authentication process
             function handleAuth() {
@@ -101,7 +153,6 @@
                         // We show the data view and fetch the user's profile data
                         showDataView();
                         fetchProfileData(accessToken);
-                        fetchStepsData(accessToken);
                     }
                 }
 
@@ -135,6 +186,7 @@
                 $authSection.show();
                 $dataSection.hide();
                 $stepsSection.hide();
+                $intradaySection.hide();
             }
 
             // This function shows the data view and hides the authentication view
@@ -142,6 +194,7 @@
                 $authSection.hide();
                 $dataSection.show();
                 $stepsSection.show();
+                $intradaySection.show();
             }
 
             // This function fetches the user's profile data from the Fitbit API
@@ -157,7 +210,12 @@
                     },
                     // If the call is successful, we display the data in the preformatted text block
                     success: function(data) {
-                        $apiData.text(JSON.stringify(data, null, 2));
+                        const user = data.user;
+                        const profileHtml = `
+                            <p><strong>First Name:</strong> ${user.firstName}</p>
+                            <p><strong>Age:</strong> ${user.age}</p>
+                        `;
+                        $apiData.html(profileHtml);
                     },
                     // If there's an error, we handle it
                     error: function(jqXHR, textStatus, errorThrown) {
@@ -175,24 +233,11 @@
             }
 
             // This function fetches the user's steps data from the Fitbit API
-            function fetchStepsData(token) {
+            function fetchStepsData(token, startDate, endDate) {
                 const userId = localStorage.getItem('fitbitUserId');
-                const today = new Date();
-                const tenDaysAgo = new Date();
-                tenDaysAgo.setDate(today.getDate() - 9); // 9 days ago to get a total of 10 days
-
-                const formatDate = (date) => {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                };
-
-                const endDateString = formatDate(today);
-                const startDateString = formatDate(tenDaysAgo);
-
+                
                 $.ajax({
-                    url: `https://api.fitbit.com/1/user/${userId}/activities/steps/date/${startDateString}/${endDateString}.json`,
+                    url: `https://api.fitbit.com/1/user/${userId}/activities/steps/date/${startDate}/${endDate}.json`,
                     headers: {
                         'Authorization': `Bearer ${token}`
                     },
@@ -215,13 +260,64 @@
                 });
             }
 
+            // This function fetches intraday step data from the Fitbit API
+            function fetchIntradayData(token, date, startTime, endTime) {
+                const userId = localStorage.getItem('fitbitUserId');
+                $.ajax({
+                    url: `https://api.fitbit.com/1/user/${userId}/activities/steps/date/${date}/1d/15min/time/${startTime}/${endTime}.json`,
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    success: function(data) {
+                        let intradayHtml = '<ul>';
+                        data['activities-steps-intraday'].dataset.forEach(function(point) {
+                            intradayHtml += `<li>${point.time}: ${point.value} steps</li>`;
+                        });
+                        intradayHtml += '</ul>';
+                        $intradayData.html(intradayHtml);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        if (jqXHR.status === 401) {
+                            logout();
+                            return;
+                        }
+                        console.error('Error fetching Fitbit intraday data:', textStatus, errorThrown);
+                        $intradayData.text('Error fetching intraday data.');
+                    }
+                });
+            }
+
             // We attach the login and logout functions to the click events of the respective buttons
             $loginButton.on('click', login);
             $logoutButton.on('click', logout);
             $fetchStepsButton.on('click', function() {
                 const token = localStorage.getItem('fitbitAccessToken');
-                if (token) {
-                    fetchStepsData(token);
+                const startDate = $startDate.val();
+                const endDate = $endDate.val();
+
+                if (startDate && endDate && startDate > endDate) {
+                    alert('Start date cannot be after end date.');
+                    return;
+                }
+
+                if (token && startDate && endDate) {
+                    fetchStepsData(token, startDate, endDate);
+                }
+            });
+
+            $fetchIntradayButton.on('click', function() {
+                const token = localStorage.getItem('fitbitAccessToken');
+                const date = $intradayDate.val();
+                const startTime = $startTimeIntraday.val();
+                const endTime = $endTimeIntraday.val();
+
+                if (startTime && endTime && startTime > endTime) {
+                    alert('Start time cannot be after end time.');
+                    return;
+                }
+
+                if (token && date && startTime && endTime) {
+                    fetchIntradayData(token, date, startTime, endTime);
                 }
             });
 
